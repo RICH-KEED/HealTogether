@@ -19,6 +19,10 @@ import { useEffect } from "react";
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 
+// Remove these debug logs that might cause build issues
+// console.log("API URL:", import.meta.env.VITE_API_URL);
+// console.log("API BASE URL:", import.meta.env.VITE_API_BASE_URL);
+
 const ProtectedRoute = ({ element, condition, redirectTo }) => {
   if (condition) {
     return element;
