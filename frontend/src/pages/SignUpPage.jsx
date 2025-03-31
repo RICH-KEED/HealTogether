@@ -4,7 +4,7 @@ import AuthImagePattern from "../components/AuthImagePattern";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, Mail, User, MessageSquare } from "lucide-react";
 import toast from "react-hot-toast";
-import { axiosInstance } from "../lib/axios";
+import api from "../lib/axios";
 
 const roleOptions = [
   { id: "user", label: "User", icon: "👤", description: "Join as a regular user" },
@@ -57,7 +57,7 @@ const SignupPage = () => {
 
   const handleVerificationRequest = async (message) => {
     try {
-      await axiosInstance.post("/auth/request-verification", { message });
+      await api.post("/auth/request-verification", { message });
       toast.success("Verification request submitted successfully");
     } catch (error) {
       toast.error("Failed to submit verification request");
