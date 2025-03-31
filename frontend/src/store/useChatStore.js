@@ -57,7 +57,7 @@ export const useChatStore = create((set, get) => ({
         text: message.text || ""
       };
       
-      const response = await axiosInstance.post(`/messages/send/${receiverId}`, messageToSend);
+      const response = await api.post(`/messages/send/${receiverId}`, messageToSend);
       
       if (response && response.data) {
         set((state) => ({
@@ -89,7 +89,7 @@ export const useChatStore = create((set, get) => ({
   getUsers: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await axiosInstance.get("/messages/users");
+      const res = await api.get("/messages/users");
       set({ users: res.data, loading: false });
     } catch (error) {
       console.error("Error getting users:", error);
