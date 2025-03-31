@@ -30,3 +30,7 @@ a {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
 }
+
+.h-screen {
+    height:100%;
+}
