@@ -53,8 +53,24 @@ export const useAuraAIStore = create((set, get) => ({
     try {
       const response = await api.get(`/chats/${chatId}`);
       if (response.data) {
+        // Handle different response formats - try to extract message history
+        let messageHistory = [];
+        
+        // If response.data.messages exists, use it
+        if (Array.isArray(response.data.messages)) {
+          messageHistory = response.data.messages;
+        } 
+        // If response.data.history exists, use it
+        else if (Array.isArray(response.data.history)) {
+          messageHistory = response.data.history;
+        }
+        // If response.data itself is an array, use it
+        else if (Array.isArray(response.data)) {
+          messageHistory = response.data;
+        }
+        
         set({ 
-          history: Array.isArray(response.data.messages) ? response.data.messages : [], 
+          history: messageHistory, 
           loading: false 
         });
       }
