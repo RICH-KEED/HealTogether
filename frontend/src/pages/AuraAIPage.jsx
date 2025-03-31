@@ -46,9 +46,10 @@ const AuraAIPage = () => {
     const fetchChats = async () => {
       try {
         const response = await api.get("/chats");
-        setChats(response.data);
+        setChats(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         toast.error("Failed to load chat history");
+        setChats([]);
       }
     };
 
@@ -62,10 +63,11 @@ const AuraAIPage = () => {
         try {
           const response = await api.get(`/chats/${id}`);
           setSelectedChat(response.data.chat);
-          setMessages(response.data.messages);
+          setMessages(Array.isArray(response.data.messages) ? response.data.messages : []);
         } catch (error) {
           toast.error("Failed to load chat messages");
           navigate("/aura-ai");
+          setMessages([]);
         } finally {
           setIsLoading(false);
         }
@@ -108,7 +110,7 @@ const AuraAIPage = () => {
       } else {
         // Add to existing chat
         const messageRes = await api.post(`/chats/${selectedChat._id}/messages`, newMessage);
-        setMessages([...messages, messageRes.data]);
+        setMessages(prevMessages => Array.isArray(prevMessages) ? [...prevMessages, messageRes.data] : [messageRes.data]);
         
         // AI response is handled by the backend
       }
@@ -176,21 +178,21 @@ const AuraAIPage = () => {
               </div>
               
               <div className="overflow-y-auto flex-1 p-2">
-                {chats.map(chat => (
-                  <button
-                    key={chat._id}
-                    onClick={() => navigate(`/aura-ai/chats/${chat._id}`)}
-                    className={`w-full p-3 text-left rounded-lg mb-2 
-                      ${selectedChat?._id === chat._id ? 'bg-primary/20' : 'hover:bg-base-300'}`}
-                  >
-                    <p className="font-medium truncate">{chat.title}</p>
-                    <p className="text-xs text-base-content/60">
-                      {new Date(chat.updatedAt).toLocaleDateString()}
-                    </p>
-                  </button>
-                ))}
-                
-                {chats.length === 0 && (
+                {Array.isArray(chats) && chats.length > 0 ? (
+                  chats.map(chat => (
+                    <button
+                      key={chat._id}
+                      onClick={() => navigate(`/aura-ai/chats/${chat._id}`)}
+                      className={`w-full p-3 text-left rounded-lg mb-2 
+                        ${selectedChat?._id === chat._id ? 'bg-primary/20' : 'hover:bg-base-300'}`}
+                    >
+                      <p className="font-medium truncate">{chat.title}</p>
+                      <p className="text-xs text-base-content/60">
+                        {new Date(chat.updatedAt).toLocaleDateString()}
+                      </p>
+                    </button>
+                  ))
+                ) : (
                   <div className="text-center p-4 text-base-content/60">
                     No conversation history yet
                   </div>
@@ -228,7 +230,7 @@ const AuraAIPage = () => {
                   <div className="flex justify-center items-center h-full">
                     <Loader2 className="size-8 animate-spin text-primary" />
                   </div>
-                ) : !selectedChat && chats.length === 0 ? (
+                ) : !selectedChat && (!Array.isArray(chats) || chats.length === 0) ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <div className="bg-primary/10 p-4 rounded-full mb-4">
                       <img src="/ai-bot.svg" alt="AI Assistant" className="size-16" />
@@ -238,7 +240,7 @@ const AuraAIPage = () => {
                       Your AI health assistant. Ask me anything about health, wellness, or medical questions.
                     </p>
                   </div>
-                ) : (
+                ) : Array.isArray(messages) && messages.length > 0 ? (
                   messages.map((message, index) => (
                     <div 
                       key={message._id || index}
@@ -266,6 +268,10 @@ const AuraAIPage = () => {
                       </div>
                     </div>
                   ))
+                ) : (
+                  <div className="text-center text-base-content/60 py-10">
+                    No messages yet. Send one to start the conversation!
+                  </div>
                 )}
               </div>
               
