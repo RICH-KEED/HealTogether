@@ -102,17 +102,25 @@ const AuraAIPage = () => {
       if (!selectedChat) {
         // Create a new chat
         const chatRes = await api.post("/chats", { title: inputMessage.substring(0, 30) });
+        
+        if (!chatRes.data || !chatRes.data._id) {
+          throw new Error("Failed to create new chat");
+        }
+        
         const messageRes = await api.post(`/chats/${chatRes.data._id}/messages`, newMessage);
         
         setSelectedChat(chatRes.data);
         setMessages([messageRes.data]);
         navigate(`/aura-ai/chats/${chatRes.data._id}`);
       } else {
+        // Add validation to ensure selectedChat._id exists
+        if (!selectedChat._id) {
+          throw new Error("Invalid chat selected");
+        }
+        
         // Add to existing chat
         const messageRes = await api.post(`/chats/${selectedChat._id}/messages`, newMessage);
         setMessages(prevMessages => Array.isArray(prevMessages) ? [...prevMessages, messageRes.data] : [messageRes.data]);
-        
-        // AI response is handled by the backend
       }
       
       // Reset states
@@ -120,7 +128,8 @@ const AuraAIPage = () => {
       setImagePreview(null);
       setUploadedImageUrl(null);
     } catch (error) {
-      toast.error("Failed to send message");
+      console.error("Send message error:", error);
+      toast.error(error.message || "Failed to send message");
     } finally {
       setIsSending(false);
     }
