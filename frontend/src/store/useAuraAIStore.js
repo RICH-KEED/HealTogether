@@ -27,16 +27,29 @@ export const useAuraAIStore = create((set, get) => ({
   getUserChats: async () => {
     set({ loading: true });
     try {
-      // Make a direct call to the correct endpoint
-      const response = await api.get("/chats/userchats");
-      console.log("Fetched user chats:", response.data);
+      console.log("Fetching user chats");
       
-      set({ 
-        chats: Array.isArray(response.data) ? response.data : [],
-        loading: false,
-        hasInitialized: true 
-      });
-      return response.data;
+      // Make a direct call to the correct endpoint
+      const response = await api.get("/chats/userchats")
+        .catch(err => {
+          console.error("Failed to fetch from /userchats endpoint:", err);
+          // If userchats fails, try the root endpoint
+          return api.get("/chats");
+        });
+      
+      if (response && response.data) {
+        console.log(`Fetched ${response.data.length} chats`);
+        
+        set({ 
+          chats: Array.isArray(response.data) ? response.data : [],
+          loading: false,
+          hasInitialized: true 
+        });
+        
+        return response.data;
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (error) {
       console.error("Error fetching chats:", error);
       toast.error("Failed to load chat history");
@@ -145,33 +158,50 @@ export const useAuraAIStore = create((set, get) => ({
   createNewChat: async (initialMessage, imageUrl = null) => {
     set({ loading: true });
     try {
-      // First create a new chat
-      const chatResponse = await api.post("/chats", { 
-        title: initialMessage.substring(0, 30) || "New conversation"
-      });
+      // First create a new chat with a proper title
+      const chatTitle = initialMessage ? initialMessage.substring(0, 30) : "New conversation";
+      console.log(`Creating new chat with title: ${chatTitle}`);
       
-      if (!chatResponse.data || !chatResponse.data._id) {
-        throw new Error("Failed to create new chat");
+      const chatResponse = await api.post("/chats", { title: chatTitle });
+      
+      if (!chatResponse || !chatResponse.data || !chatResponse.data._id) {
+        console.error("Invalid chat creation response:", chatResponse);
+        throw new Error("Failed to create new chat - invalid response");
       }
       
-      // Then send the first message to this chat
-      const messageData = {
-        text: initialMessage || "",
-        image: imageUrl
-      };
+      const chatId = chatResponse.data._id;
+      console.log(`Created new chat with ID: ${chatId}`);
       
-      await api.post(`/chats/${chatResponse.data._id}/messages`, messageData);
-      
-      // Update chat list and select the new chat
-      const chats = await get().getUserChats();
-      const newChat = chats.find(c => c._id === chatResponse.data._id);
-      
-      if (newChat) {
-        set({ currentChat: newChat });
+      try {
+        // Then send the first message to this chat
+        const messageData = {
+          text: initialMessage || "",
+          image: imageUrl
+        };
+        
+        await api.post(`/chats/${chatId}/messages`, messageData);
+        console.log("Initial message sent successfully");
+        
+        // Update chat list and select the new chat
+        const chats = await get().getUserChats();
+        
+        if (Array.isArray(chats)) {
+          const newChat = chats.find(c => c._id === chatId);
+          if (newChat) {
+            set({ currentChat: newChat });
+          } else {
+            console.warn("Created chat not found in updated chat list");
+          }
+        } else {
+          console.warn("Invalid chats response:", chats);
+        }
+      } catch (messageError) {
+        console.error("Error sending initial message:", messageError);
+        // Even if message fails, we created the chat successfully
       }
       
       set({ loading: false });
-      return chatResponse.data._id;
+      return chatId;
     } catch (error) {
       console.error("Error creating new chat:", error);
       toast.error("Failed to create new chat");
