@@ -90,18 +90,24 @@ const AuraAIPage = () => {
       return;
     }
     
-    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
-      navigate("/aura-ai");
-      return;
-    }
+    console.log("Looking for chat with ID:", id);
+    console.log("Available chats:", chats);
     
-    const chat = chats.find(c => c._id === id);
+    // Find the chat by checking both _id and as string representation
+    const chat = chats.find(c => 
+      c._id === id || 
+      c._id?.toString() === id ||
+      (typeof c === 'string' ? c === id : false)
+    );
+    
     if (chat) {
+      console.log("Found matching chat:", chat);
       setCurrentChat(chat);
     } else {
+      console.log("No matching chat found, navigating back");
       navigate("/aura-ai");
     }
-  }, [id, chats]);
+  }, [id, chats, clearCurrentChat, navigate, setCurrentChat]);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -201,22 +207,36 @@ const AuraAIPage = () => {
     navigate("/aura-ai");
   };
   
-  // Function to render messages
+  // Function to render messages with more defensive coding
   const renderMessage = (msg, index) => {
-    const isUser = msg.role === "user";
+    if (!msg) return null;
     
-    // Handle different message formats that might be coming from the API
-    const messageText = msg.parts && msg.parts[0] && msg.parts[0].text 
-      ? msg.parts[0].text 
-      : (msg.text || "");
-      
-    const messageImage = msg.parts && msg.parts[0] && msg.parts[0].img
-      ? msg.parts[0].img
-      : (msg.image || null);
+    // Safely determine if this is a user message
+    const isUser = msg.role === "user" || msg.senderId === authUser?._id;
+    
+    // Safely extract text from various possible formats
+    let messageText = "";
+    if (typeof msg.text === "string") {
+      messageText = msg.text;
+    } else if (msg.parts && Array.isArray(msg.parts) && msg.parts[0]) {
+      messageText = msg.parts[0].text || "";
+    }
+    
+    // Safely extract image
+    let messageImage = null;
+    if (msg.image) {
+      messageImage = msg.image;
+    } else if (msg.parts && Array.isArray(msg.parts) && msg.parts[0]) {
+      messageImage = msg.parts[0].img || null;
+    }
+    
+    // Get a display time
+    const displayTime = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : 
+      new Date().toLocaleTimeString();
     
     return (
       <div 
-        key={index} 
+        key={msg._id || index} 
         className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
         ref={index === history.length - 1 ? messagesEndRef : null}
       >
@@ -240,7 +260,7 @@ const AuraAIPage = () => {
           </div>
           
           <p className="text-[10px] opacity-70 mt-1 text-right">
-            {new Date(msg.createdAt || Date.now()).toLocaleTimeString()}
+            {displayTime}
           </p>
         </div>
       </div>
@@ -267,22 +287,31 @@ const AuraAIPage = () => {
               
               <div className="overflow-y-auto flex-1 p-2">
                 {Array.isArray(chats) && chats.length > 0 ? (
-                  chats.map(chat => (
-                    <button
-                      key={chat._id}
-                      onClick={() => navigate(`/aura-ai/chats/${chat._id}`)}
-                      className={`w-full p-3 text-left rounded-lg mb-2 
-                        ${currentChat?._id === chat._id ? 'bg-primary/20' : 'hover:bg-base-300'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MessageCircle className="size-4 flex-shrink-0" />
-                        <p className="font-medium truncate">{chat.title}</p>
-                      </div>
-                      <p className="text-xs text-base-content/60 mt-1">
-                        {new Date(chat.updatedAt).toLocaleDateString()}
-                      </p>
-                    </button>
-                  ))
+                  chats.map(chat => {
+                    // Handle both object and string formats
+                    const chatId = typeof chat === 'object' ? chat._id : chat;
+                    const chatTitle = typeof chat === 'object' ? chat.title : "Chat";
+                    const chatDate = typeof chat === 'object' ? chat.updatedAt : null;
+                    
+                    return (
+                      <button
+                        key={chatId}
+                        onClick={() => navigate(`/aura-ai/chats/${chatId}`)}
+                        className={`w-full p-3 text-left rounded-lg mb-2 
+                          ${currentChat?._id === chatId ? 'bg-primary/20' : 'hover:bg-base-300'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="size-4 flex-shrink-0" />
+                          <p className="font-medium truncate">{chatTitle}</p>
+                        </div>
+                        {chatDate && (
+                          <p className="text-xs text-base-content/60 mt-1">
+                            {new Date(chatDate).toLocaleDateString()}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="text-center p-4 text-base-content/60">
                     No conversation history yet
