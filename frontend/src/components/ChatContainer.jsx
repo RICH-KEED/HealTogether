@@ -66,7 +66,7 @@ const ChatContainer = () => {
             <MessageSkeleton />
             <MessageSkeleton />
           </div>
-        ) : Array.isArray(messages) && messages.length > 0 ? (
+        ) : messages.length > 0 ? (
           messages.map((message, index) => {
             const isFromCurrentUser = message.senderId === authUser._id;
             const isLastMessage = index === messages.length - 1;
