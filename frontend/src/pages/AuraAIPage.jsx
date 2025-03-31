@@ -233,7 +233,7 @@ const AuraAIPage = () => {
                 ) : !selectedChat && (!Array.isArray(chats) || chats.length === 0) ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <div className="bg-primary/10 p-4 rounded-full mb-4">
-                      <img src="/ai-bot.svg" alt="AI Assistant" className="size-16" />
+                      <img src="frontend/public/bot.png" alt="AI Assistant" className="size-16" />
                     </div>
                     <h3 className="text-xl font-medium mb-2">Welcome to Aura AI</h3>
                     <p className="text-base-content/70 max-w-md">
