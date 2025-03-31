@@ -27,7 +27,10 @@ export const useAuraAIStore = create((set, get) => ({
   getUserChats: async () => {
     set({ loading: true });
     try {
-      const response = await api.get("/chats");
+      // Make a direct call to the correct endpoint
+      const response = await api.get("/chats/userchats");
+      console.log("Fetched user chats:", response.data);
+      
       set({ 
         chats: Array.isArray(response.data) ? response.data : [],
         loading: false,
@@ -51,26 +54,17 @@ export const useAuraAIStore = create((set, get) => ({
     
     set({ loading: true });
     try {
+      console.log(`Fetching messages for chat: ${chatId}`);
       const response = await api.get(`/chats/${chatId}`);
+      console.log("Chat response:", response.data);
+      
       if (response.data) {
-        // Handle different response formats - try to extract message history
-        let messageHistory = [];
-        
-        // If response.data.messages exists, use it
-        if (Array.isArray(response.data.messages)) {
-          messageHistory = response.data.messages;
-        } 
-        // If response.data.history exists, use it
-        else if (Array.isArray(response.data.history)) {
-          messageHistory = response.data.history;
-        }
-        // If response.data itself is an array, use it
-        else if (Array.isArray(response.data)) {
-          messageHistory = response.data;
-        }
+        // Properly handle the structured response
+        const messages = response.data.messages || [];
+        console.log(`Found ${messages.length} messages`);
         
         set({ 
-          history: messageHistory, 
+          history: messages,
           loading: false 
         });
       }
