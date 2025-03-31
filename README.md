@@ -208,8 +208,6 @@ npm run build
 ## 🤝 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📜 License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 📧 Contact
-For any questions or feedback, please reach out to [your@email.com](mailto:your@email.com).
+For any questions or feedback, please reach out to [your@email.com](mailto:abhineet1805@gmail.com).
