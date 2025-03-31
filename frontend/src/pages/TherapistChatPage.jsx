@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { axiosInstance } from "../lib/axios";
+import api from "../lib/axios";
 
 import TherapistSidebar from "../components/TherapistSidebar";
 import NoChatSelected from "../components/NoChatSelected";
@@ -33,7 +33,7 @@ const TherapistChatPage = () => {
           console.log("Fetching therapists for regular user");
         }
         
-        const res = await axiosInstance.get(endpoint);
+        const res = await api.get(endpoint);
         console.log("Fetched users/therapists:", res.data);
         setTherapists(res.data);
       } catch (error) {
