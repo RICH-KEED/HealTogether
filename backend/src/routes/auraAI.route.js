@@ -124,6 +124,82 @@ router.get("/userchats", async (req, res) => {
   }
 });
 
+// Create a new endpoint specifically for getting messages for a chat
+router.post("/:id/messages", async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const chatId = req.params.id;
+    const { text, image } = req.body;
+    
+    // Log to identify issues
+    console.log(`Received message request for chat ${chatId} with text:`, text?.substring(0, 30));
+
+    // Validate chatId format
+    if (!isValidObjectId(chatId)) {
+      return res.status(400).json({ error: "Invalid chat ID format" });
+    }
+    
+    // Find the chat
+    const chat = await Chat.findOne({ _id: chatId, userId });
+    if (!chat) {
+      console.log("Chat not found for ID:", chatId);
+      return res.status(404).json({ message: "Chat not found" });
+    }
+    
+    // Create user message
+    const userMessage = { 
+      role: "user", 
+      parts: [{ 
+        text: text || "Image shared",
+        ...(image && { img: image })
+      }],
+      createdAt: new Date()
+    };
+    
+    // Add message to history
+    chat.history = chat.history || [];
+    chat.history.push(userMessage);
+    chat.updatedAt = new Date();
+    
+    // Generate AI response
+    let aiResponseText;
+    try {
+      console.log("Getting AI response...");
+      const prompt = `You are Aura AI, a helpful health assistant. Respond briefly and helpfully to: ${text}`;
+      const result = await model.generateContent(prompt);
+      aiResponseText = result.response.text();
+    } catch (error) {
+      console.error("AI response error:", error);
+      aiResponseText = "I'm sorry, I encountered an issue processing your request. Please try again.";
+    }
+    
+    // Create AI message
+    const aiMessage = {
+      role: "assistant",
+      parts: [{ text: aiResponseText }],
+      createdAt: new Date() 
+    };
+    
+    // Add AI message to history
+    chat.history.push(aiMessage);
+    
+    // Save the updated chat
+    await chat.save();
+    
+    console.log("Chat updated successfully with 2 new messages");
+    
+    // Return both messages
+    res.status(200).json({
+      userMessage,
+      aiResponse: aiMessage
+    });
+    
+  } catch (error) {
+    console.error("Error processing message:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get specific chat - This must come AFTER more specific routes
 router.get("/:id", async (req, res) => {
   const userId = req.user._id;
@@ -141,12 +217,17 @@ router.get("/:id", async (req, res) => {
       return res.status(404).send("Chat not found");
     }
 
-    // Sort history array to ensure chronological order
-    chat.history.sort((a, b) => {
-      return new Date(a.timestamp) - new Date(b.timestamp);
+    // Make sure we're sending history in a consistent format
+    res.status(200).json({
+      chat: {
+        _id: chat._id,
+        userId: chat.userId,
+        title: chat.title || "Chat",
+        createdAt: chat.createdAt,
+        updatedAt: chat.updatedAt
+      },
+      messages: chat.history || []
     });
-
-    res.status(200).send(chat);
   } catch (err) {
     console.log(err);
     res.status(500).send("Error fetching chat!");
