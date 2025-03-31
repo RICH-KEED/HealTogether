@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios.js";
+import api from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 
@@ -31,7 +31,7 @@ export const useChatStore = create((set, get) => ({
     
     set({ loading: true, error: null });
     try {
-      const response = await axiosInstance.get(`/messages/${userId}`);
+      const response = await api.get(`/messages/${userId}`);
       set({ messages: response.data || [], loading: false });
     } catch (error) {
       console.error("Error getting messages:", error);
