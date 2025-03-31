@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import api from "../lib/axios"; // Changed from axiosInstance
 import { useNavigate } from "react-router-dom";
-import { 
-  Users, Shield, Copy, Check, X, Loader2, 
-  SquareStack, MessageCircle, School, Heart, Brain,
-  BarChart2, Search, Filter, Trash, AlertTriangle,
-  UserPlus, Settings, ExternalLink
-} from "lucide-react";
 import toast from "react-hot-toast";
-import { axiosInstance } from "../lib/axios";
+import { 
+  Users, CheckSquare, XSquare, User, Search, 
+  AlertTriangle, CheckCircle, XCircle
+} from "lucide-react";
 
 const AdminDashboardPage = () => {
   const { authUser } = useAuthStore();
@@ -49,7 +47,7 @@ const AdminDashboardPage = () => {
     const fetchPendingUsers = async () => {
       setIsLoading(true);
       try {
-        const res = await axiosInstance.get("/admin/pending-users");
+        const res = await api.get("/admin/pending-users");
         setPendingUsers(res.data);
       } catch (error) {
         toast.error("Failed to load pending users");
@@ -67,7 +65,7 @@ const AdminDashboardPage = () => {
       const fetchAllUsers = async () => {
         setIsLoadingStats(true);
         try {
-          const res = await axiosInstance.get("/admin/all-users");
+          const res = await api.get("/admin/all-users");
           setAllUsers(res.data);
         } catch (error) {
           toast.error("Failed to load users statistics");
@@ -86,7 +84,7 @@ const AdminDashboardPage = () => {
       const fetchGroups = async () => {
         setIsLoadingGroups(true);
         try {
-          const res = await axiosInstance.get("/admin/groups");
+          const res = await api.get("/admin/groups");
           setGroups(res.data);
         } catch (error) {
           toast.error("Failed to load groups");
@@ -102,7 +100,7 @@ const AdminDashboardPage = () => {
   const handleVerifyUser = async (userId) => {
     setIsVerifying(true);
     try {
-      const res = await axiosInstance.post(`/admin/verify-user/${userId}`);
+      const res = await api.post(`/admin/verify-user/${userId}`);
       
       // Update the pending users list
       setPendingUsers(prevUsers => 
@@ -124,7 +122,7 @@ const AdminDashboardPage = () => {
   const handleRejectUser = async (userId) => {
     setIsVerifying(true);
     try {
-      await axiosInstance.post(`/admin/reject-user/${userId}`);
+      await api.post(`/admin/reject-user/${userId}`);
       
       // Remove the rejected user from the list
       setPendingUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
@@ -152,7 +150,7 @@ const AdminDashboardPage = () => {
     
     setIsCreatingGroup(true);
     try {
-      await axiosInstance.post("/admin/create-group", groupForm);
+      await api.post("/admin/create-group", groupForm);
       toast.success(`${groupForm.name} group created successfully`);
       setShowCreateGroup(false);
       setGroupForm({ name: "", type: "", description: "" });
@@ -166,7 +164,7 @@ const AdminDashboardPage = () => {
   const handleDeleteUser = async (userId) => {
     setIsDeleting(true);
     try {
-      await axiosInstance.delete(`/admin/delete-user/${userId}`);
+      await api.delete(`/admin/delete-user/${userId}`);
       
       // Remove the deleted user from the list
       setAllUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
