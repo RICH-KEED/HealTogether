@@ -1,0 +1,31 @@
+.dashboardLayout {
+  display: flex;
+  gap: 50px;
+  padding-top: 20px;
+  height: 100%;
+
+  .menu {
+    flex: 1;
+  }
+
+  .content {
+    flex: 4;
+    background-color: #12101b;
+  }
+
+  .wrapper {
+    flex: 1;
+    overflow: auto; /* Change from 'scroll' to 'auto' */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    
+    /* Hide scrollbar for all browsers */
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+    }
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
