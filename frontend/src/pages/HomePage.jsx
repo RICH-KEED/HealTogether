@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { axiosInstance } from "../lib/axios";
+import api from "../lib/axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import NoChatSelected from "../components/NoChatSelected";
@@ -30,7 +30,7 @@ const HomePage = () => {
       const fetchGroupDetails = async () => {
         try {
           // First check if user is already a member
-          const response = await axiosInstance.get("/messages/groups");
+          const response = await api.get("/messages/groups");
           const userGroup = response.data.find(g => g._id === groupId);
           
           if (userGroup && isUserInGroup(userGroup)) {
@@ -40,7 +40,7 @@ const HomePage = () => {
           } else {
             // Not a member, try to join
             try {
-              const joinResponse = await axiosInstance.post(`/messages/join-group/${groupId}`);
+              const joinResponse = await api.post(`/messages/join-group/${groupId}`);
               setSelectedGroup(joinResponse.data);
               setShowGroups(false);
               toast.success(`Joined ${joinResponse.data.name}`);
@@ -65,7 +65,7 @@ const HomePage = () => {
     const fetchGroups = async () => {
       setIsLoadingGroups(true);
       try {
-        const res = await axiosInstance.get("/messages/groups");
+        const res = await api.get("/messages/groups");
         setGroups(res.data);
       } catch (error) {
         toast.error("Failed to load groups");
@@ -104,7 +104,7 @@ const HomePage = () => {
   const handleJoinGroup = async (groupId) => {
     setIsJoining(true);
     try {
-      const response = await axiosInstance.post(`/messages/join-group/${groupId}`);
+      const response = await api.post(`/messages/join-group/${groupId}`);
       
       // Update the groups list with the updated group that includes the user as a member
       setGroups(prevGroups => 
