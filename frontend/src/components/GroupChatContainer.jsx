@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { axiosInstance } from "../lib/axios";
+import api from "../lib/axios"; // Changed from axiosInstance
 import { formatMessageTime } from "../lib/utils";
 import { ArrowLeft, Send, Image, Users, X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -17,7 +17,7 @@ const GroupChatContainer = ({ group, onBack }) => {
     const fetchGroupMessages = async () => {
       setIsLoading(true);
       try {
-        const res = await axiosInstance.get(`/messages/group/${group._id}`);
+        const res = await api.get(`/messages/group/${group._id}`);
         setMessages(res.data);
       } catch (error) {
         toast.error("Error loading group messages");
@@ -56,7 +56,7 @@ const GroupChatContainer = ({ group, onBack }) => {
     if (!text.trim()) return;
 
     try {
-      const res = await axiosInstance.post(`/messages/send-group/${group._id}`, {
+      const res = await api.post(`/messages/send-group/${group._id}`, {
         text: text.trim()
       });
       
