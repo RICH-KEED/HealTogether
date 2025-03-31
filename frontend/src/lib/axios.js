@@ -1,12 +1,7 @@
 import axios from "axios";
 
-// Keep the /api in the base URL for consistency with other endpoints
-const BASE_URL = "https://healtogether.tech/api";
-
-console.log("API base URL:", BASE_URL);
-
 export const axiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
