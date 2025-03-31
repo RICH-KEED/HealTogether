@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Camera, Mail, User, ShieldCheck, Copy, CheckCircle, Home } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { axiosInstance } from "../lib/axios";
+import api from "../lib/axios";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
@@ -88,7 +88,7 @@ const ProfilePage = () => {
               
               try {
                 // Send the compressed image directly using the image update API
-                const response = await axiosInstance.put("/auth/update-profile", 
+                const response = await api.put("/auth/update-profile", 
                   { profilePic: compressedDataUrl }
                 );
                 
@@ -142,7 +142,7 @@ const ProfilePage = () => {
     
     setIsRequestingVerification(true);
     try {
-      await axiosInstance.post("/auth/request-verification", { message: verificationMessage });
+      await api.post("/auth/request-verification", { message: verificationMessage });
       setShowVerificationModal(false);
       toast.success("Verification request submitted successfully");
       // Reload user data to get updated verificationRequest status
