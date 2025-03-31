@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios.js";
+import api from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
+// Fix the BASE_URL to use the environment variable instead of hardcoding
+const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -16,7 +17,7 @@ export const useAuthStore = create((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const res = await axiosInstance.get("/auth/check");
+      const res = await api.get("/auth/check");
       
       // Calculate needsVerification directly here to ensure consistency
       const needsVerification = 
@@ -46,7 +47,7 @@ export const useAuthStore = create((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post("/auth/signup", data);
+      const res = await api.post("/auth/signup", data);
       
       // Determine if verification is needed based on role and status
       const needsVerification = 
@@ -77,7 +78,7 @@ export const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post("/auth/login", data);
+      const res = await api.post("/auth/login", data);
       
       // Determine if verification is needed based on role and status
       const needsVerification = 
@@ -107,7 +108,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await axiosInstance.post("/auth/logout");
+      await api.post("/auth/logout");
       set({ authUser: null });
       toast.success("Logged out successfully");
       get().disconnectSocket();
@@ -127,7 +128,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       // If data is an empty object, just refresh the user profile
       if (Object.keys(data).length === 0) {
-        const res = await axiosInstance.get("/auth/check");
+        const res = await api.get("/auth/check");
         set({ 
           authUser: res.data,
           isUpdatingProfile: false
@@ -136,7 +137,7 @@ export const useAuthStore = create((set, get) => ({
       }
       
       // Otherwise, update the profile with provided data
-      const res = await axiosInstance.put("/auth/update-profile", data);
+      const res = await api.put("/auth/update-profile", data);
       set({ 
         authUser: res.data,
         isUpdatingProfile: false 
@@ -158,7 +159,7 @@ export const useAuthStore = create((set, get) => ({
 
   requestVerification: async (message) => {
     try {
-      const res = await axiosInstance.post("/auth/request-verification", { message });
+      const res = await api.post("/auth/request-verification", { message });
       set((state) => ({
         authUser: { ...state.authUser, verificationRequest: true, verificationMessage: message }
       }));
@@ -174,7 +175,7 @@ export const useAuthStore = create((set, get) => ({
     if (!authUser || socket?.connected) return;
 
     try {
-      // Create socket with proper options
+      // Create socket with proper options using the correct BASE_URL
       const newSocket = io(BASE_URL, {
         query: {
           userId: authUser._id
@@ -214,7 +215,7 @@ export const useAuthStore = create((set, get) => ({
 
   validateReferralCode: async (code) => {
     try {
-      const res = await axiosInstance.post("/auth/validate-referral", { referralCode: code });
+      const res = await api.post("/auth/validate-referral", { referralCode: code });
       return res.data.valid;
     } catch (error) {
       return false;
