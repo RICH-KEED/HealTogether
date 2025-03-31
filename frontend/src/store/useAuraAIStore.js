@@ -1,233 +1,219 @@
 import { create } from "zustand";
-import api from "../lib/axios";
+import axios from "../lib/axios"; // Import the configured axios instance
 import toast from "react-hot-toast";
+import { useAuthStore } from "./useAuthStore";
 
 export const useAuraAIStore = create((set, get) => ({
-  // State
-  chats: [],
+  chats: [], // Ensure this is initialized as an empty array
   currentChat: null,
   history: [],
   loading: false,
+  error: null,
+  // Prevent infinite request issues
+  isLoadingChats: false,
   hasInitialized: false,
 
-  // Actions
-  setCurrentChat: (chat) => {
-    set({ currentChat: chat });
-    if (chat) {
-      get().getMessages(chat._id);
-    } else {
-      set({ history: [] });
+  setCurrentChat: async (chat) => {
+    // Skip if we're already showing this chat
+    if (get().currentChat && get().currentChat._id === chat._id) {
+      console.log("Already showing this chat, skipping");
+      return;
     }
-  },
 
-  clearCurrentChat: () => {
-    set({ currentChat: null, history: [] });
+    try {
+      // Validate the chat ID format before making the request
+      if (!chat || !chat._id || !/^[0-9a-fA-F]{24}$/.test(chat._id)) {
+        console.error("Invalid chat ID format:", chat?._id);
+        toast.error("Invalid chat ID format");
+        return;
+      }
+      
+      set({ loading: true, currentChat: chat, history: [] });
+      // Remove /api prefix as it's already in baseURL
+      const response = await axios.get(`/chats/${chat._id}`);
+      set({ history: response.data.history, loading: false });
+    } catch (error) {
+      console.error("Error fetching chat:", error);
+      set({ loading: false, currentChat: null });
+      toast.error('Failed to load chat');
+    }
   },
 
   getUserChats: async () => {
-    set({ loading: true });
+    // Prevent multiple simultaneous requests
+    if (get().isLoadingChats) {
+      console.log("Already loading chats, skipping request");
+      return;
+    }
+    
+    // Only make the request if we have an authenticated user
+    const { authUser } = useAuthStore.getState();
+    if (!authUser) {
+      console.log("No authenticated user, skipping request");
+      return;
+    }
+    
+    set({ isLoadingChats: true });
     try {
       console.log("Fetching user chats");
+      // Remove /api prefix as it's already in baseURL
+      const response = await axios.get('/chats/userchats');
       
-      // Make a direct call to the correct endpoint
-      const response = await api.get("/chats/userchats")
-        .catch(err => {
-          console.error("Failed to fetch from /userchats endpoint:", err);
-          // If userchats fails, try the root endpoint
-          return api.get("/chats");
-        });
-      
-      if (response && response.data) {
-        console.log(`Fetched ${response.data.length} chats`);
-        
-        set({ 
-          chats: Array.isArray(response.data) ? response.data : [],
-          loading: false,
-          hasInitialized: true 
-        });
-        
-        return response.data;
-      } else {
-        throw new Error("Invalid response format");
-      }
-    } catch (error) {
-      console.error("Error fetching chats:", error);
-      toast.error("Failed to load chat history");
       set({ 
-        chats: [],
-        loading: false,
+        chats: Array.isArray(response.data) ? response.data : [], 
+        isLoadingChats: false,
         hasInitialized: true
       });
-      return [];
+    } catch (error) {
+      console.error("Error fetching user chats:", error);
+      set({ isLoadingChats: false, chats: [] });
     }
   },
 
-  getMessages: async (chatId) => {
+  getChatHistory: async (chatId) => {
     if (!chatId) return;
     
-    set({ loading: true });
+    const { authUser } = useAuthStore.getState();
+    
+    if (!authUser) {
+      toast.error("Please log in to access chat history");
+      return;
+    }
+    
+    set({ loading: true, error: null });
     try {
-      console.log(`Fetching messages for chat: ${chatId}`);
-      const response = await api.get(`/chats/${chatId}`);
-      console.log("Chat response:", response.data);
-      
+      // Remove /api prefix as it's already in baseURL
+      const response = await axios.get(`/chats/${chatId}`);
       if (response.data) {
-        // Properly handle the structured response
-        const messages = response.data.messages || [];
-        console.log(`Found ${messages.length} messages`);
-        
         set({ 
-          history: messages,
+          history: response.data.history || [], 
           loading: false 
         });
-      }
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      toast.error("Failed to load messages");
-      set({ history: [], loading: false });
-    }
-  },
-
-  sendMessage: async (text, chatId, imageUrl = null) => {
-    if (!chatId) {
-      throw new Error("No chat selected");
-    }
-
-    set({ loading: true });
-    try {
-      // Prepare message data with optional image
-      const messageData = {
-        text: text || "",
-        image: imageUrl
-      };
-      
-      // Add user message to history immediately for better UX
-      const tempUserMessage = {
-        _id: Date.now().toString(),
-        role: "user",
-        createdAt: new Date().toISOString(),
-        parts: [{ text: text || "", img: imageUrl }],
-      };
-      
-      set((state) => ({
-        history: [...state.history, tempUserMessage]
-      }));
-
-      // Send to backend
-      const response = await api.post(`/chats/${chatId}/messages`, messageData);
-      
-      // Update with response from backend
-      if (response.data && response.data.aiResponse) {
-        const aiResponse = {
-          _id: response.data.aiResponse._id || Date.now().toString() + "-ai",
-          role: "assistant",
-          createdAt: response.data.aiResponse.createdAt || new Date().toISOString(),
-          parts: [{ text: response.data.aiResponse.text }],
-        };
-        
-        set((state) => ({
-          history: [...state.history.filter(msg => msg._id !== tempUserMessage._id), 
-                    response.data.userMessage, 
-                    aiResponse],
-          loading: false
-        }));
       } else {
-        // If no AI response in the payload, just update user message
-        set((state) => ({
-          history: [...state.history.filter(msg => msg._id !== tempUserMessage._id), 
-                    response.data],
-          loading: false
-        }));
+        throw new Error("Invalid response data");
       }
-      
-      // Update chat list to reflect latest message
-      get().getUserChats();
-      
-      return response.data;
     } catch (error) {
-      console.error("Error sending message:", error);
-      set((state) => ({ 
-        // Remove temporary message on error
-        history: state.history.filter(msg => msg._id !== tempUserMessage?._id),
-        loading: false 
-      }));
-      throw error;
+      console.error("Error fetching chat history:", error);
+      set({ 
+        error: error.message || "Failed to fetch chat history", 
+        loading: false,
+        history: []
+      });
+      toast.error("Failed to load chat history");
     }
   },
 
-  createNewChat: async (initialMessage, imageUrl = null) => {
-    set({ loading: true });
+  createNewChat: async (message, imageUrl = null) => {
+    if (!message.trim() && !imageUrl) {
+      toast.error("Please enter a message or upload an image");
+      return;
+    }
+    
+    const { authUser } = useAuthStore.getState();
+    
+    if (!authUser) {
+      toast.error("Please log in to create a chat");
+      return;
+    }
+    
+    set({ loading: true, error: null });
     try {
-      // First create a new chat with a proper title
-      const chatTitle = initialMessage ? initialMessage.substring(0, 30) : "New conversation";
-      console.log(`Creating new chat with title: ${chatTitle}`);
+      console.log("Creating new chat with API path: /chats");
+      // Remove /api prefix as it's already in baseURL
+      const response = await axios.post('/chats', { 
+        text: message,
+        img: imageUrl 
+      });
+      const chatId = response.data;
       
-      const chatResponse = await api.post("/chats", { title: chatTitle });
-      
-      if (!chatResponse || !chatResponse.data || !chatResponse.data._id) {
-        console.error("Invalid chat creation response:", chatResponse);
-        throw new Error("Failed to create new chat - invalid response");
-      }
-      
-      const chatId = chatResponse.data._id;
-      console.log(`Created new chat with ID: ${chatId}`);
-      
-      try {
-        // Then send the first message to this chat
-        const messageData = {
-          text: initialMessage || "",
-          image: imageUrl
-        };
-        
-        await api.post(`/chats/${chatId}/messages`, messageData);
-        console.log("Initial message sent successfully");
-        
-        // Update chat list and select the new chat
-        const chats = await get().getUserChats();
-        
-        if (Array.isArray(chats)) {
-          const newChat = chats.find(c => c._id === chatId);
-          if (newChat) {
-            set({ currentChat: newChat });
-          } else {
-            console.warn("Created chat not found in updated chat list");
-          }
-        } else {
-          console.warn("Invalid chats response:", chats);
-        }
-      } catch (messageError) {
-        console.error("Error sending initial message:", messageError);
-        // Even if message fails, we created the chat successfully
-      }
+      await get().getUserChats();
       
       set({ loading: false });
       return chatId;
     } catch (error) {
       console.error("Error creating new chat:", error);
+      set({ 
+        error: error.message || "Failed to create new chat", 
+        loading: false 
+      });
       toast.error("Failed to create new chat");
-      set({ loading: false });
-      throw error;
+      return null;
     }
   },
 
-  deleteChat: async (chatId) => {
-    if (!chatId) return;
+  sendMessage: async (message, chatId, imageUrl = null) => {
+    if ((!message.trim() && !imageUrl) || !chatId) {
+      toast.error("Invalid message or chat");
+      return;
+    }
     
+    // Validate the chat ID format
+    if (!/^[0-9a-fA-F]{24}$/.test(chatId)) {
+      console.error("Invalid chat ID format:", chatId);
+      toast.error("Invalid chat ID format");
+      return;
+    }
+    
+    const { authUser } = useAuthStore.getState();
+    
+    if (!authUser) {
+      toast.error("Please log in to send messages");
+      return;
+    }
+    
+    set({ loading: true, error: null });
     try {
-      await api.delete(`/chats/${chatId}`);
-      
-      set((state) => ({
-        chats: state.chats.filter(chat => chat._id !== chatId),
-        currentChat: state.currentChat?._id === chatId ? null : state.currentChat,
-        history: state.currentChat?._id === chatId ? [] : state.history
+      // Add user message to history immediately for UI responsiveness
+      set(state => ({
+        history: [
+          ...state.history, 
+          { 
+            role: "user", 
+            parts: [{ 
+              text: message.trim() || "Image shared", 
+              ...(imageUrl && { img: imageUrl })
+            }] 
+          }
+        ]
       }));
       
-      toast.success("Chat deleted successfully");
-      return true;
+      console.log("Sending message to API path:", `/chats/${chatId}`);
+      // Remove /api prefix as it's already in baseURL
+      const response = await axios.put(`/chats/${chatId}`, { 
+        question: message,
+        img: imageUrl
+      });
+      
+      console.log("API response:", response.data);
+      
+      // Add AI response to history immediately for UI responsiveness
+      if (response.data && response.data.aiResponse) {
+        set(state => ({
+          history: [
+            ...state.history,
+            {
+              role: "model",
+              parts: [{ text: response.data.aiResponse }]
+            }
+          ]
+        }));
+      }
+      
+      // No need to refetch the entire chat history since we've already updated it
+      // await get().getChatHistory(chatId);
+      
+      set({ loading: false });
     } catch (error) {
-      console.error("Error deleting chat:", error);
-      toast.error("Failed to delete chat");
-      return false;
+      console.error("Error sending message:", error);
+      set({ 
+        error: error.message || "Failed to send message", 
+        loading: false 
+      });
+      toast.error("Failed to send message");
     }
+  },
+
+  clearCurrentChat: () => {
+    set({ currentChat: null, history: [] });
   }
 }));
