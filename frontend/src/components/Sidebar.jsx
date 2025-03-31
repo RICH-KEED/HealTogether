@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { useNavigate } from "react-router-dom";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users, ArrowLeft, Search, MessageCircle, UsersRound, User } from "lucide-react";
-import { axiosInstance } from "../lib/axios";
+import api from "../lib/axios"; // Changed from importing axiosInstance
 import toast from "react-hot-toast";
 
 const Sidebar = ({ onUserSelect, onGroupSelect, selectedGroup }) => {
@@ -26,7 +26,7 @@ const Sidebar = ({ onUserSelect, onGroupSelect, selectedGroup }) => {
       setError(null);
       
       try {
-        const res = await axiosInstance.get("/messages/users");
+        const res = await api.get("/messages/users");
         setUsers(res.data || []);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -47,7 +47,7 @@ const Sidebar = ({ onUserSelect, onGroupSelect, selectedGroup }) => {
       const fetchGroups = async () => {
         setLoadingGroups(true);
         try {
-          const res = await axiosInstance.get("/messages/groups");
+          const res = await api.get("/messages/groups");
           setGroups(res.data || []);
         } catch (error) {
           console.error("Error fetching groups:", error);
