@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
+import { useAuraAIStore } from "../store/useAuraAIStore";
 import api from "../lib/axios";
 import { IKContext, IKUpload } from "imagekitio-react";
-import { Loader2, ChevronLeft, Send, Image, X } from "lucide-react";
+import { Loader2, ChevronLeft, Send, Image, X, PlusCircle, MessageCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import NoChatSelected from "../components/NoChatSelected";
 
 // Get ImageKit configuration from environment variables
 const urlEndpoint = import.meta.env.VITE_IMAGE_KIT_ENDPOINT;
@@ -14,13 +16,23 @@ const AuraAIPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { authUser } = useAuthStore();
-  const [chats, setChats] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [messages, setMessages] = useState([]);
+  
+  // Use the Aura AI store
+  const {
+    currentChat,
+    setCurrentChat,
+    chats,
+    getUserChats,
+    history,
+    sendMessage,
+    createNewChat,
+    loading,
+    clearCurrentChat
+  } = useAuraAIStore();
+  
+  // Component state
   const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   
   // Image upload states
   const [imagePreview, setImagePreview] = useState(null);
@@ -42,98 +54,61 @@ const AuraAIPage = () => {
     }
   };
 
+  // Fetch user chats once on component mount
   useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const response = await api.get("/chats");
-        setChats(Array.isArray(response.data) ? response.data : []);
-      } catch (error) {
-        toast.error("Failed to load chat history");
-        setChats([]);
+    let isMounted = true;
+    
+    const fetchInitialData = async () => {
+      // Check if we need to initialize chats
+      const { hasInitialized } = useAuraAIStore.getState();
+      
+      if (!hasInitialized) {
+        console.log("Initializing chats");
+        await getUserChats();
       }
+      
+      if (!isMounted) return;
     };
-
-    fetchChats();
+    
+    fetchInitialData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
+  
+  // Handle URL chat ID changes
   useEffect(() => {
-    if (id) {
-      const fetchChatMessages = async () => {
-        setIsLoading(true);
-        try {
-          const response = await api.get(`/chats/${id}`);
-          setSelectedChat(response.data.chat);
-          setMessages(Array.isArray(response.data.messages) ? response.data.messages : []);
-        } catch (error) {
-          toast.error("Failed to load chat messages");
-          navigate("/aura-ai");
-          setMessages([]);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchChatMessages();
-    } else {
-      setSelectedChat(null);
-      setMessages([]);
+    if (!id) {
+      clearCurrentChat();
+      return;
     }
-  }, [id, navigate]);
-
+    
+    const { chats } = useAuraAIStore.getState();
+    if (!chats || !Array.isArray(chats) || chats.length === 0) {
+      // Wait for chats to be loaded
+      return;
+    }
+    
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      navigate("/aura-ai");
+      return;
+    }
+    
+    const chat = chats.find(c => c._id === id);
+    if (chat) {
+      setCurrentChat(chat);
+    } else {
+      navigate("/aura-ai");
+    }
+  }, [id, chats]);
+  
+  // Scroll to bottom when messages change
   useEffect(() => {
-    // Scroll to bottom whenever messages change
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
-
-  const handleSendMessage = async (e) => {
-    e?.preventDefault();
-    
-    if ((!inputMessage.trim() && !uploadedImageUrl) || isSending) return;
-    
-    setIsSending(true);
-    const newMessage = {
-      text: inputMessage.trim(),
-      image: uploadedImageUrl || null,
-    };
-    
-    try {
-      if (!selectedChat) {
-        // Create a new chat
-        const chatRes = await api.post("/chats", { title: inputMessage.substring(0, 30) });
-        
-        if (!chatRes.data || !chatRes.data._id) {
-          throw new Error("Failed to create new chat");
-        }
-        
-        const messageRes = await api.post(`/chats/${chatRes.data._id}/messages`, newMessage);
-        
-        setSelectedChat(chatRes.data);
-        setMessages([messageRes.data]);
-        navigate(`/aura-ai/chats/${chatRes.data._id}`);
-      } else {
-        // Add validation to ensure selectedChat._id exists
-        if (!selectedChat._id) {
-          throw new Error("Invalid chat selected");
-        }
-        
-        // Add to existing chat
-        const messageRes = await api.post(`/chats/${selectedChat._id}/messages`, newMessage);
-        setMessages(prevMessages => Array.isArray(prevMessages) ? [...prevMessages, messageRes.data] : [messageRes.data]);
-      }
-      
-      // Reset states
-      setInputMessage("");
-      setImagePreview(null);
-      setUploadedImageUrl(null);
-    } catch (error) {
-      console.error("Send message error:", error);
-      toast.error(error.message || "Failed to send message");
-    } finally {
-      setIsSending(false);
-    }
-  };
+  }, [history]);
 
   // Image upload handlers
   const handleUploadError = (err) => {
@@ -154,6 +129,20 @@ const AuraAIPage = () => {
     const file = evt.target.files[0];
     if (!file) return;
     
+    // Check file type and size
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPEG, PNG, GIF)');
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+    
     setIsUploading(true);
     
     // Create preview
@@ -169,6 +158,88 @@ const AuraAIPage = () => {
     setUploadedImageUrl(null);
   };
 
+  // Enhanced message sending with image support
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
+    
+    if ((!inputMessage.trim() && !uploadedImageUrl) || isTyping) return;
+    
+    try {
+      if (currentChat) {
+        console.log("Sending message to existing chat:", currentChat._id);
+        setIsTyping(true); // Show typing indicator
+        
+        // Send message with optional image in existing chat
+        await sendMessage(inputMessage, currentChat._id, uploadedImageUrl);
+        
+        setIsTyping(false); // Hide typing indicator
+      } else {
+        console.log("Creating new chat with message:", inputMessage);
+        
+        // Create new chat
+        const chatId = await createNewChat(inputMessage, uploadedImageUrl);
+        
+        console.log("New chat created:", chatId);
+        if (chatId) {
+          navigate(`/aura-ai/chats/${chatId}`);
+        }
+      }
+      
+      // Reset states
+      setInputMessage("");
+      setImagePreview(null);
+      setUploadedImageUrl(null);
+    } catch (error) {
+      setIsTyping(false);
+      toast.error("Failed to send message");
+      console.error("Message send error:", error);
+    }
+  };
+  
+  const handleNewChat = () => {
+    clearCurrentChat();
+    navigate("/aura-ai");
+  };
+  
+  // Function to render messages
+  const renderMessage = (msg, index) => {
+    const isUser = msg.role === "user";
+    
+    return (
+      <div 
+        key={index} 
+        className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
+        ref={index === history.length - 1 ? messagesEndRef : null}
+      >
+        <div 
+          className={`max-w-[80%] p-4 rounded-xl ${
+            isUser 
+              ? 'bg-primary text-primary-content' 
+              : 'bg-base-200 text-base-content'
+          }`}
+        >
+          {/* Display image if present */}
+          {msg.parts && msg.parts[0] && msg.parts[0].img && (
+            <img
+              src={msg.parts[0].img}
+              alt="Attached"
+              className="max-h-40 rounded-lg object-cover mb-2"
+            />
+          )}
+          
+          {/* Display text */}
+          <div className="whitespace-pre-wrap">
+            {msg.parts && msg.parts[0] && msg.parts[0].text}
+          </div>
+          
+          <p className="text-[10px] opacity-70 mt-1 text-right">
+            {new Date(msg.createdAt || Date.now()).toLocaleTimeString()}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="h-screen bg-base-200">
       <div className="flex items-center justify-center pt-20 px-4">
@@ -180,8 +251,9 @@ const AuraAIPage = () => {
                 <h3 className="font-medium">My AI Chats</h3>
                 <button 
                   className="btn btn-sm btn-primary"
-                  onClick={() => setShowNewChat(true)}
+                  onClick={handleNewChat}
                 >
+                  <PlusCircle className="size-4 mr-1" />
                   New Chat
                 </button>
               </div>
@@ -193,10 +265,13 @@ const AuraAIPage = () => {
                       key={chat._id}
                       onClick={() => navigate(`/aura-ai/chats/${chat._id}`)}
                       className={`w-full p-3 text-left rounded-lg mb-2 
-                        ${selectedChat?._id === chat._id ? 'bg-primary/20' : 'hover:bg-base-300'}`}
+                        ${currentChat?._id === chat._id ? 'bg-primary/20' : 'hover:bg-base-300'}`}
                     >
-                      <p className="font-medium truncate">{chat.title}</p>
-                      <p className="text-xs text-base-content/60">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="size-4 flex-shrink-0" />
+                        <p className="font-medium truncate">{chat.title}</p>
+                      </div>
+                      <p className="text-xs text-base-content/60 mt-1">
                         {new Date(chat.updatedAt).toLocaleDateString()}
                       </p>
                     </button>
@@ -213,7 +288,7 @@ const AuraAIPage = () => {
             <div className="flex-1 flex flex-col">
               {/* Chat header */}
               <div className="p-4 border-b border-base-300 flex items-center">
-                {selectedChat ? (
+                {currentChat ? (
                   <>
                     <button 
                       className="btn btn-sm btn-ghost btn-circle mr-3"
@@ -222,9 +297,9 @@ const AuraAIPage = () => {
                       <ChevronLeft className="size-5" />
                     </button>
                     <div>
-                      <h2 className="font-medium">{selectedChat.title}</h2>
+                      <h2 className="font-medium">{currentChat.title}</h2>
                       <p className="text-xs text-base-content/60">
-                        {new Date(selectedChat.createdAt).toLocaleDateString()}
+                        {new Date(currentChat.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </>
@@ -235,51 +310,32 @@ const AuraAIPage = () => {
               
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {isLoading ? (
+                {loading && !history.length ? (
                   <div className="flex justify-center items-center h-full">
                     <Loader2 className="size-8 animate-spin text-primary" />
                   </div>
-                ) : !selectedChat && (!Array.isArray(chats) || chats.length === 0) ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <div className="bg-primary/10 p-4 rounded-full mb-4">
-                      <img src="frontend/public/bot.png" alt="AI Assistant" className="size-16" />
-                    </div>
-                    <h3 className="text-xl font-medium mb-2">Welcome to Aura AI</h3>
-                    <p className="text-base-content/70 max-w-md">
-                      Your AI health assistant. Ask me anything about health, wellness, or medical questions.
-                    </p>
-                  </div>
-                ) : Array.isArray(messages) && messages.length > 0 ? (
-                  messages.map((message, index) => (
-                    <div 
-                      key={message._id || index}
-                      className={`flex ${message.isAI ? 'justify-start' : 'justify-end'}`}
-                      ref={index === messages.length - 1 ? messagesEndRef : null}
-                    >
-                      <div 
-                        className={`max-w-[80%] p-4 rounded-xl ${
-                          message.isAI 
-                            ? 'bg-base-200 text-base-content' 
-                            : 'bg-primary text-primary-content'
-                        }`}
-                      >
-                        {message.image && (
-                          <img
-                            src={message.image}
-                            alt="Attached"
-                            className="max-h-40 rounded-lg object-cover mb-2"
-                          />
-                        )}
-                        <p>{message.text}</p>
-                        <p className="text-[10px] opacity-70 mt-1 text-right">
-                          {new Date(message.createdAt).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                ) : !currentChat ? (
+                  <NoChatSelected
+                    title="Welcome to Aura AI"
+                    description="Your AI health assistant. Ask me anything about health, wellness, or medical questions."
+                  />
+                ) : Array.isArray(history) && history.length > 0 ? (
+                  history.map((message, index) => renderMessage(message, index))
                 ) : (
                   <div className="text-center text-base-content/60 py-10">
                     No messages yet. Send one to start the conversation!
+                  </div>
+                )}
+                
+                {/* Typing indicator */}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-base-200 text-base-content rounded-xl p-4 max-w-[80%]">
+                      <div className="flex items-center gap-2">
+                        <span className="loading loading-dots loading-sm"></span>
+                        <span className="text-sm opacity-70">Aura is thinking...</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -334,7 +390,7 @@ const AuraAIPage = () => {
                         type="button"
                         className="btn btn-circle btn-ghost"
                         onClick={() => ikUploadRef.current?.click()}
-                        disabled={isUploading || isSending}
+                        disabled={isUploading || isTyping}
                       >
                         <Image className="size-5" />
                       </button>
@@ -346,15 +402,23 @@ const AuraAIPage = () => {
                       placeholder="Type your message here..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
-                      disabled={isSending}
+                      disabled={isTyping}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (inputMessage.trim() || uploadedImageUrl) {
+                            handleSendMessage(e);
+                          }
+                        }
+                      }}
                     />
                     
                     <button
                       type="submit"
                       className="btn btn-circle btn-primary"
-                      disabled={(!inputMessage.trim() && !uploadedImageUrl) || isSending || isUploading}
+                      disabled={(!inputMessage.trim() && !uploadedImageUrl) || isTyping || isUploading}
                     >
-                      {isSending ? (
+                      {isTyping ? (
                         <Loader2 className="size-5 animate-spin" />
                       ) : (
                         <Send className="size-5" />
