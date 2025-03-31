@@ -205,6 +205,15 @@ const AuraAIPage = () => {
   const renderMessage = (msg, index) => {
     const isUser = msg.role === "user";
     
+    // Handle different message formats that might be coming from the API
+    const messageText = msg.parts && msg.parts[0] && msg.parts[0].text 
+      ? msg.parts[0].text 
+      : (msg.text || "");
+      
+    const messageImage = msg.parts && msg.parts[0] && msg.parts[0].img
+      ? msg.parts[0].img
+      : (msg.image || null);
+    
     return (
       <div 
         key={index} 
@@ -218,18 +227,16 @@ const AuraAIPage = () => {
               : 'bg-base-200 text-base-content'
           }`}
         >
-          {/* Display image if present */}
-          {msg.parts && msg.parts[0] && msg.parts[0].img && (
+          {messageImage && (
             <img
-              src={msg.parts[0].img}
+              src={messageImage}
               alt="Attached"
               className="max-h-40 rounded-lg object-cover mb-2"
             />
           )}
           
-          {/* Display text */}
           <div className="whitespace-pre-wrap">
-            {msg.parts && msg.parts[0] && msg.parts[0].text}
+            {messageText}
           </div>
           
           <p className="text-[10px] opacity-70 mt-1 text-right">
@@ -319,12 +326,16 @@ const AuraAIPage = () => {
                     title="Welcome to Aura AI"
                     description="Your AI health assistant. Ask me anything about health, wellness, or medical questions."
                   />
-                ) : Array.isArray(history) && history.length > 0 ? (
-                  history.map((message, index) => renderMessage(message, index))
                 ) : (
-                  <div className="text-center text-base-content/60 py-10">
-                    No messages yet. Send one to start the conversation!
-                  </div>
+                  <>
+                    {Array.isArray(history) && history.length > 0 ? (
+                      history.map((message, index) => renderMessage(message, index))
+                    ) : (
+                      <div className="text-center text-base-content/60 py-10">
+                        No messages yet. Send one to start the conversation!
+                      </div>
+                    )}
+                  </>
                 )}
                 
                 {/* Typing indicator */}
