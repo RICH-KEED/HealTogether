@@ -4,8 +4,11 @@ import api from "../lib/axios"; // Changed from axiosInstance
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { 
+  // Remove Users if it's not being used correctly
+  CheckSquare, XSquare, User, Search, 
   AlertTriangle, CheckCircle, XCircle, MessageCircle,
-  BarChart2, Filter, Trash, ArrowLeft, Check, X, Copy, Loader2
+  BarChart2, Filter, Trash, ArrowLeft, Check, X, Copy, Loader2,
+  UsersRound as Users
 } from "lucide-react";
 
 const AdminDashboardPage = () => {
