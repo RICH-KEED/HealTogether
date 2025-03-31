@@ -1,33 +1,27 @@
 import axios from "axios";
 
-export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,,
+// Create API with fallback for environment variables
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json"
-  },
-  maxContentLength: 10 * 1024 * 1024, // 10MB
-  maxBodyLength: 10 * 1024 * 1024, // 10MB
-  timeout: 30000 // 30 seconds
+  }
 });
 
 // Add a request interceptor to set default headers
-axiosInstance.interceptors.request.use(
+api.interceptors.request.use(
   config => {
-    // Ensure content type is always set
-    config.headers = {
-      ...config.headers,
-      'Content-Type': 'application/json',
-    };
-    
+    // Log base URL for debugging during build issues
+    console.log("Using API base URL:", config.baseURL);
     return config;
   },
   error => Promise.reject(error)
 );
 
 // Add a response interceptor for better error handling
-axiosInstance.interceptors.response.use(
+api.interceptors.response.use(
   response => response,
   error => {
     // Network errors often happen with CORS issues
@@ -36,18 +30,8 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(new Error("Network error - please check your connection"));
     }
     
-    // Handle specific errors
-    if (error.response.status === 413) {
-      console.error("Payload too large:", error.response.data);
-      return Promise.reject(new Error("Image is too large. Please use a smaller image."));
-    }
-    
-    if (error.response.status === 400 && error.response.data?.message) {
-      return Promise.reject(new Error(error.response.data.message));
-    }
-    
     return Promise.reject(error);
   }
 );
 
-export default axiosInstance;
+export default api;
