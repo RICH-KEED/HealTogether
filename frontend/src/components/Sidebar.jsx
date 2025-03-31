@@ -62,14 +62,14 @@ const Sidebar = ({ onUserSelect, onGroupSelect, selectedGroup }) => {
     }
   }, [activeTab]);
 
-  const filteredUsers = users && Array.isArray(users) 
+  const filteredUsers = Array.isArray(users) 
     ? users.filter((user) => 
         user?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
         user?.email?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : [];
 
-  const filteredGroups = groups && Array.isArray(groups)
+  const filteredGroups = Array.isArray(groups)
     ? groups.filter((group) =>
         group?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         group?.description?.toLowerCase().includes(searchQuery.toLowerCase())
