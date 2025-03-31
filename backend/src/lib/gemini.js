@@ -66,74 +66,60 @@ function formatHistoryForGemini(history = []) {
 }
 
 /**
- * Direct implementation to simply get a response from Gemini
+ * Get a response from the Gemini API
+ * @param {string} prompt - The prompt to send to Gemini
+ * @returns {Promise<string>} - The text response from Gemini
  */
-export async function getGeminiResponse(prompt, history = []) {
-  console.log("Gemini handler received prompt:", prompt?.substring(0, 50));
-  
-  if (!genAI) {
-    console.error("Gemini API client not initialized - API key may be missing");
-    return getFallbackResponse();
-  }
-  
-  if (!prompt || typeof prompt !== 'string') {
-    console.error("Invalid prompt provided to getGeminiResponse:", prompt);
-    return "I didn't understand that. Could you please try again?";
+export const getGeminiResponse = async (prompt) => {
+  if (!prompt) {
+    return "I need some input to respond to. How can I help you?";
   }
   
   try {
-    console.log("Creating Gemini model instance");
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    console.log(`Sending prompt to Gemini: "${prompt.substring(0, 50)}..."`);
     
-    // Include system prompt with user's question
-    const fullPrompt = `${SYSTEM_PROMPT}\n\nUser: ${prompt}`;
-    console.log("Sending request to Gemini API");
-    
-    // Add timeout to avoid hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
-    
-    // Make the API request with ability to cancel
-    const result = await model.generateContent({
-      contents: [{ parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 800,
-      }
-    });
-    
-    // Clear timeout since we got a response
-    clearTimeout(timeoutId);
-    
-    const responseText = result.response?.text();
-    
-    if (!responseText) {
-      console.error("Empty response from Gemini API");
-      return getFallbackResponse();
+    if (!genAI) {
+      console.error("Gemini API client not initialized - missing API key");
+      return "I'm sorry, but I'm not properly configured to respond right now.";
     }
     
-    console.log(`Got Gemini response (${responseText.length} chars): "${responseText.substring(0, 50)}..."`);
+    // Create a more robust prompt
+    const formattedPrompt = `You are Aura AI, a helpful health assistant. 
+    You provide concise, evidence-based information about health and wellbeing.
+    
+    User's query: ${prompt}
+    
+    Provide a helpful response:`;
+    
+    // Get the model and generate content
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(formattedPrompt);
+    const response = result.response;
+    
+    // Extract and return the text
+    const responseText = response.text();
+    if (!responseText) {
+      throw new Error("Empty response from Gemini API");
+    }
+    
+    console.log(`Got response (${responseText.length} chars): "${responseText.substring(0, 50)}..."`);
     return responseText;
   } catch (error) {
-    console.error("Error with Gemini API:", error);
-    return getFallbackResponse();
+    console.error("Gemini API error:", error);
+    // Return a fallback response
+    return getFallbackResponse(prompt);
   }
-}
+};
 
-/**
- * Fallback responses when Gemini isn't available
- */
-export function getFallbackResponse(prompt) {
-  const responses = [
-    "I'm here to listen and support you. Tell me more about what's on your mind.",
-    "Mental wellness is about finding balance in our thoughts, feelings and actions. How can I help you today?",
-    "I appreciate you reaching out. Building mental resilience takes time and practice - I'm here to help.",
-    "Sometimes talking through our challenges helps us see them more clearly. What specifically are you struggling with?",
-    "Self-care looks different for everyone. Let's explore what might work best for your situation."
+export const getFallbackResponse = (prompt = "") => {
+  const fallbackResponses = [
+    "I'm sorry, I'm having trouble processing that request right now. Could you ask me a different way?",
+    "I apologize, but I'm experiencing some technical difficulties. Let's try a different approach.",
+    "My systems are currently under heavy load. Could you please try again in a moment?",
+    "I'd like to help, but I'm having trouble processing that. Could you rephrase your question?",
+    "Interesting question! Unfortunately, I'm having trouble connecting to my knowledge base right now."
   ];
   
-  console.log("Using fallback response");
-  return responses[Math.floor(Math.random() * responses.length)];
-}
+  // Return a random fallback response
+  return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+};
