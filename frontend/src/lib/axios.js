@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Keep the /api in the base URL for consistency with other endpoints
-const BASE_URL = "http://localhost:5001/api";
+const BASE_URL = "https://healtogether.tech/api";
 
 console.log("API base URL:", BASE_URL);
 
