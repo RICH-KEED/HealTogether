@@ -4,6 +4,8 @@
 
 HealTogether is a comprehensive health community platform that connects individuals seeking health advice with professionals and peers in a supportive environment. The platform combines real-time messaging, AI-powered health insights, and community support features.
 
+🚀 **Experience it live:** [healtogether.tech](https://healtogether.tech)
+
 ## ✨ Features
 
 ### 🔐 Authentication System
@@ -210,4 +212,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 
 ## 📧 Contact
-For any questions or feedback, please reach out to [your@email.com](mailto:abhineet1805@gmail.com).
+For any questions or feedback, please reach out to [abhineet1805@gmail.com](mailto:abhineet1805@gmail.com).
