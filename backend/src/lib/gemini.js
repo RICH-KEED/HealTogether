@@ -1,9 +1,20 @@
 import dotenv from "dotenv";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI,HarmBlockThreshold,
+  HarmCategory, } from "@google/generative-ai";
 
 // Load environment variables
 dotenv.config();
 
+const safetySetting = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+];
 // Get the API key from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
