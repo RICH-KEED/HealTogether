@@ -8,7 +8,7 @@ import axios from './axios';
 export async function getGeminiResponse(prompt) {
   try {
     // Instead of calling Gemini directly, we'll use our backend as a proxy
-    const response = await axios.post('/api/gemini/generate', { 
+    const response = await axios.post('/gemini/generate', { 
       prompt
     });
     
