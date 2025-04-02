@@ -213,7 +213,7 @@ const AuraAIPage = () => {
         setIsTyping(false); // Hide typing indicator
         
         // You could optionally get a local AI response for immediate feedback
-        // const aiResponse = await getGeminiResponse(originalInput);
+        const aiResponse = await getGeminiResponse(originalInput, history);
         // console.log("Local AI response:", aiResponse);
       } else {
         console.log("Creating new chat with message:", input);
