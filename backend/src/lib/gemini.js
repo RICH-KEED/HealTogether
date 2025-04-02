@@ -98,7 +98,10 @@ export async function getGeminiResponse(prompt, history = []) {
   
   try {
     console.log("Creating Gemini model instance");
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-pro",
+    safetySetting,
+    });
     
     // Include system prompt with user's question
     const fullPrompt = `${SYSTEM_PROMPT}\n\nUser: ${prompt}`;
