@@ -7,6 +7,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../lib/axios"; // Import the configured axios instance
 import getGeminiResponse from "../lib/gemini";
+import Markdown from "react-markdown";
 
 const AuraAIPage = () => {
   const {
@@ -258,7 +259,7 @@ const AuraAIPage = () => {
           
           {/* Display text */}
           <div className="whitespace-pre-wrap">
-            {msg.parts && msg.parts[0] && msg.parts[0].text}
+            <Markdown>{msg.parts?.[0]?.text || "No message"}</Markdown>
           </div>
         </div>
       </div>
