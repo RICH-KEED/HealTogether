@@ -7,6 +7,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../lib/axios"; // Import the configured axios instance
 import getGeminiResponse from "../lib/gemini";
+import { getGeminiResponse } from './lib/gemini.js';
 import Markdown from "react-markdown";
 
 const AuraAIPage = () => {
