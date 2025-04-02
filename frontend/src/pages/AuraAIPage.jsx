@@ -167,7 +167,7 @@ const AuraAIPage = () => {
       const standardAxios = window.axios || axios.create();
       
       const uploadResponse = await standardAxios.post(
-        'https://upload.imagekit.io/api/v1/files/upload',
+        'https://ik.imagekit.io/1ypsjjrun,
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
