@@ -110,19 +110,32 @@ export async function getGeminiResponse(prompt, history = []) {
   try {
     console.log("Creating Gemini model instance");
     const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-pro",
-    safetySetting,
+      model: "gemini-1.5-pro",
+      safetySetting,
     });
-    
-    // Include system prompt with user's question
-    const fullPrompt = `${SYSTEM_PROMPT}\n\nUser: ${prompt}`;
-    console.log("Sending request to Gemini API");
+
+    // Build conversation history as text
+    let historyText = "";
+    if (Array.isArray(history) && history.length > 0) {
+      history.forEach(msg => {
+        // Assume msg.role is "user" or "assistant"
+        const speaker = msg.role === "user" ? "User" : "AURA";
+        // Ensure we have valid text in parts
+        if (msg.parts && msg.parts[0] && msg.parts[0].text) {
+          historyText += `\n${speaker}: ${msg.parts[0].text}`;
+        }
+      });
+    }
+
+    // Append the history to the system prompt before the current user input
+    const fullPrompt = `${SYSTEM_PROMPT}\n${historyText}\nUser: ${prompt}`;
+    console.log("Sending request to Gemini API with prompt:", fullPrompt.substring(0, 100));
     
     // Add timeout to avoid hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
     
-    // Make the API request with ability to cancel
+    // Call the generateContent API
     const result = await model.generateContent({
       contents: [{ parts: [{ text: fullPrompt }] }],
       generationConfig: {
@@ -133,7 +146,6 @@ export async function getGeminiResponse(prompt, history = []) {
       }
     });
     
-    // Clear timeout since we got a response
     clearTimeout(timeoutId);
     
     const responseText = result.response?.text();
