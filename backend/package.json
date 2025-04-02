@@ -23,7 +23,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.1",
     "node-fetch": "^3.3.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "react-markdown": "^9.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
