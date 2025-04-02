@@ -74,10 +74,10 @@ function formatHistoryForGemini(history = []) {
   
   // Keep chronological order for Gemini's context understanding
   return recentHistory.map(msg => ({
-    role: msg.role === "model" ? "model" : "user",
+    role: msg.role,  // Keep the original role as it is (user or model)
     parts: [{ text: msg.parts?.[0]?.text || "" }]
-  }));
-}
+}));
+
 
 /**
  * Direct implementation to simply get a response from Gemini
