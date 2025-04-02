@@ -43,7 +43,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chats", auraAIRoutes);
-app.use("/api/gemini", geminiRoutes); // Add the new Gemini route
+app.use("/gemini", geminiRoutes); // Add the new Gemini route
 app.get("/api/upload", (req, res) => {
   try {
     const result = imagekit.getAuthenticationParameters();
