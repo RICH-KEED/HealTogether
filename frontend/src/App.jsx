@@ -10,6 +10,7 @@ import TherapistChatPage from "./pages/TherapistChatPage";
 import VerificationNeededPage from "./pages/VerificationNeededPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AuraAIPage from "./pages/AuraAIPage";
+import DiaryPage from "./pages/DiaryPage";
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore";
@@ -18,10 +19,6 @@ import { useEffect } from "react";
 
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-
-// Remove these debug logs that might cause build issues
-// console.log("API URL:", import.meta.env.VITE_API_URL);
-// console.log("API BASE URL:", import.meta.env.VITE_API_BASE_URL);
 
 const ProtectedRoute = ({ element, condition, redirectTo }) => {
   if (condition) {
@@ -176,6 +173,17 @@ const App = () => {
               element={<AdminDashboardPage />}
               condition={authUser && authUser.role === "admin"}
               redirectTo="/"
+            />
+          }
+        />
+        
+        <Route 
+          path="/diary" 
+          element={
+            <ProtectedRoute 
+              element={<DiaryPage />}
+              condition={authUser}
+              redirectTo="/login"
             />
           }
         />
