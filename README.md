@@ -214,7 +214,7 @@ npm run build
 - **Abhineet:** Backend development, API creation, and handling.
 - **Akash:** UI design and API optimization.
 - **Suryansh:** Login & signup authentication implementation.
-- **Riva Diwan:** Implemented features like Aura Ai & Dairy[Notes].
+- **Riva Diwan:** Implemented features like Aura Ai,Dairy[Notes].
 
 ---
 
