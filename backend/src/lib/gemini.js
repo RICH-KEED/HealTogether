@@ -109,43 +109,50 @@ export async function getGeminiResponse(prompt, history = []) {
   
   try {
     console.log("Creating Gemini model instance");
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-      safetySetting,
-    });
-
-    // Build conversation history as text
-    let historyText = "";
-    if (Array.isArray(history) && history.length > 0) {
-      history.forEach(msg => {
-        // Assume msg.role is "user" or "assistant"
-        const speaker = msg.role === "user" ? "User" : "AURA";
-        // Ensure we have valid text in parts
-        if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-          historyText += `\n${speaker}: ${msg.parts[0].text}`;
-        }
-      });
-    }
-
-    // Append the history to the system prompt before the current user input
-    const fullPrompt = `${SYSTEM_PROMPT}\n${historyText}\nUser: ${prompt}`;
-    console.log("Sending request to Gemini API with prompt:", fullPrompt.substring(0, 100));
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    // Format history for Gemini if provided
+    const formattedHistory = Array.isArray(history) && history.length > 0 
+      ? formatHistoryForGemini(history)
+      : [];
+    
+    console.log("Using chat history with", formattedHistory.length, "messages");
     
     // Add timeout to avoid hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
     
-    // Call the generateContent API
-    const result = await model.generateContent({
-      contents: [{ parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 800,
-      }
-    });
+    let result;
     
+    if (formattedHistory.length > 0) {
+      // Use chat mode with history
+      const chat = model.startChat({
+        history: formattedHistory,
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 800,
+        },
+        systemPrompt: SYSTEM_PROMPT,
+      });
+      
+      result = await chat.sendMessage(prompt);
+    } else {
+      // No history, use simple generation with system prompt
+      const fullPrompt = `${SYSTEM_PROMPT}\n\nUser: ${prompt}`;
+      result = await model.generateContent({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 800,
+        }
+      });
+    }
+    
+    // Clear timeout since we got a response
     clearTimeout(timeoutId);
     
     const responseText = result.response?.text();
