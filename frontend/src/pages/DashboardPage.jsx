@@ -24,7 +24,7 @@ const DashboardPage = () => {
     } else if (option === "ai") {
       navigate("/aura-ai");
     } else if (option === "diary") {
-      toast.info("Personal diary feature coming soon!");
+      navigate("/diary");
     }
   };
 
@@ -56,7 +56,7 @@ const DashboardPage = () => {
     {
       id: "community",
       title: "Chat with Community",
-      description: "Connect with others and share experiences in group discussions",
+      description: "Connect with others and share experiences through text, images, and voice messages",
       icon: <MessageCircle className="w-12 h-12" />,
       color: "bg-blue-100 text-blue-600",
       available: true
@@ -75,7 +75,7 @@ const DashboardPage = () => {
       description: "Talk to our AI assistant for immediate guidance",
       icon: <BrainCircuit className="w-12 h-12" />,
       color: "bg-purple-100 text-purple-600",
-      available: true  // Changed from false to true
+      available: true
     },
     {
       id: "diary",
@@ -83,7 +83,7 @@ const DashboardPage = () => {
       description: "Keep a personal journal of your thoughts and feelings",
       icon: <Book className="w-12 h-12" />,
       color: "bg-amber-100 text-amber-600",
-      available: false
+      available: true  // Changed from false to true
     }
   ];
 
