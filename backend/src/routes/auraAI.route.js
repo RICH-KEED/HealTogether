@@ -207,9 +207,10 @@ router.put("/:id", async (req, res) => {
     // Generate AI response
     let aiResponse;
     try {
-      console.log("Calling Gemini API with prompt and history");
-      const updatedHistory = [...chatHistory, userMessage];
-      aiResponse = await getGeminiResponse(question || "Hello", updatedHistory);
+      console.log("Calling Gemini API with prompt:", question?.substring(0, 50));
+       
+       // Direct call to getGeminiResponse with the original question
+       aiResponse = await getGeminiResponse(question || "Hello");
       
       console.log("AI response received:", aiResponse ? aiResponse.substring(0, 50) + "..." : "No response");
       
