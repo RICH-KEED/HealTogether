@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
-import { GoogleGenerativeAI,HarmBlockThreshold,
-  HarmCategory, } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 
 // Load environment variables
 dotenv.config();
@@ -31,51 +30,37 @@ const genAI = GEMINI_API_KEY
   : null;
 
 // Updated system prompt with better formatting and structure
-const SYSTEM_PROMPT = `You are AURA, an AI advisor designed to provide short, soft-toned, and empathetic advice. Your goal is to help users navigate challenges with practical, realistic, and encouraging insights while maintaining a natural, human-like conversation.
+const SYSTEM_PROMPT = `You are AURA, an AI advisor designed to provide short, soft-toned, and empathetic advice. Your goal is to help users navigate challenges with practical, realistic, and encouraging guidance.
 
 Response Style:
 Short & Gentle – Keep messages concise and soothing. Avoid long explanations.
-
 Practical & Actionable – Offer clear, realistic guidance without unnecessary complexity.
-
 Empathetic & Supportive – Acknowledge emotions and respond in a way that makes users feel heard.
-
 Perspective-Shifting – Help users see things in a new light if needed.
-
 Realistic Yet Encouraging – Be honest but always leave room for hope.
 
 Conversational Flow & Memory:
 Maintain continuity by remembering previous details shared by the user.
-
 Ensure responses feel connected and flow naturally.
-
 Do not repeat the user's text exactly—respond in a way that moves the conversation forward.
 
 Language Adaptation:
 Match the user's language and formality:
-
 If the user types in Hindi, respond in Hindi.
-
 If the user uses informal Hindi, respond informally.
 
 Example:
-
 User: "Aaj pata kya huya?"
-
 AURA: "Batao, kya hua?" (Instead of repeating “Aaj pata kya hua?”)
 
 Quote Integration:
 Occasionally include short, meaningful quotes if they add value to the discussion. Example:
-
 "Ye toh samay hai, beet jayega." (This is just time; it will pass.)
 
 Key Rules:
 Do not repeat the user's text exactly—always move the conversation forward.
-
 Keep follow-ups relevant to the user's situation.
-
 Ensure the interaction feels natural and human-like.`;
-
 
 function formatHistoryForGemini(history = []) {
   if (!history || !Array.isArray(history)) return [];
@@ -89,7 +74,6 @@ function formatHistoryForGemini(history = []) {
     parts: [{ text: msg.parts?.[0]?.text || "" }]
   }));
 }
-
 
 /**
  * Direct implementation to simply get a response from Gemini
@@ -110,43 +94,42 @@ export async function getGeminiResponse(prompt, history = []) {
   try {
     console.log("Creating Gemini model instance");
     const model = genAI.getGenerativeModel({
-       model: "gemini-1.5-pro",
-       safetySetting,
-     });
- 
-     // Build conversation history as text
-     let historyText = "";
-     if (Array.isArray(history) && history.length > 0) {
-       history.forEach(msg => {
-         // Assume msg.role is "user" or "assistant"
-         const speaker = msg.role === "user" ? "User" : "AURA";
-         // Ensure we have valid text in parts
-         if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-           historyText += `\n${speaker}: ${msg.parts[0].text}`;
-         }
-       });
-     }
- 
-     // Append the history to the system prompt before the current user input
-     const fullPrompt = `${SYSTEM_PROMPT}\n${historyText}\nUser: ${prompt}`;
-     console.log("Sending request to Gemini API with prompt:", fullPrompt.substring(0, 100));
+      model: "gemini-1.5-pro",
+      safetySetting,
+    });
+
+    // Build conversation history as text
+    let historyText = "";
+    if (Array.isArray(history) && history.length > 0) {
+      history.forEach(msg => {
+        // Assume msg.role is "user" or "assistant"
+        const speaker = msg.role === "user" ? "User" : "AURA";
+        // Ensure we have valid text in parts
+        if (msg.parts && msg.parts[0] && msg.parts[0].text) {
+          historyText += `\n${speaker}: ${msg.parts[0].text}`;
+        }
+      });
+    }
+
+    // Append the history to the system prompt before the current user input
+    const fullPrompt = `${SYSTEM_PROMPT}\n${historyText}\nUser: ${prompt}`;
+    console.log("Sending request to Gemini API with prompt:", fullPrompt.substring(0, 100));
     
     // Add timeout to avoid hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
     
+    // Call the generateContent API
     const result = await model.generateContent({
-       contents: [{ parts: [{ text: fullPrompt }] }],
-       generationConfig: {
-         temperature: 0.7,
-         topK: 40,
-         topP: 0.95,
-         maxOutputTokens: 800,
-       }
-     });
-  }
+      contents: [{ parts: [{ text: fullPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 800,
+      }
+    });
     
-    // Clear timeout since we got a response
     clearTimeout(timeoutId);
     
     const responseText = result.response?.text();
