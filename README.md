@@ -193,8 +193,8 @@ npm run build
 1. Connect your GitHub repository to Render
 2. Create a new Web Service
 3. Use the following settings:
-   - Build Command: `npm run install-all && npm run build`
-   - Start Command: `cd backend && node src/index.js`
+   - Build Command: `npm run install-all && cd frontend && npm install imagekitio-react && cd .. && npm run build`
+   - Start Command: `NODE_ENV=production cd backend && node src/index.js`
    - Environment Variables: Add all variables from both .env files
 
 ### Custom Domain Setup
@@ -206,6 +206,31 @@ npm run build
    VITE_API_BASE_URL=https://yourdomain.com/api
    ```
 3. Configure DNS records as instructed by Render
+
+---
+
+## 🤝 Team Contribution
+
+- **Abhineet:** Backend development, API creation, and handling.
+- **Akash:** UI design and API optimization.
+- **Suryansh:** Login & signup authentication implementation.
+- **Riva Diwan:** Implemented features like Aura Ai & Dairy[Notes].
+
+---
+
+## ⚠️ Known Issues
+
+- **Diary notes may not save.**
+- **AURA AI may forget past chats.**
+
+---
+
+## 🔮 Future Scope
+- **Self-care area**: Meditation and yoga practices for mental wellness.
+- **AI-based insights**: More personalized mental health recommendations.
+- **Expanded community support**: Forums and guided group therapy sessions.
+- **Mobile app**: Bringing HealTogether to iOS and Android.
+
 
 ## 🤝 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
