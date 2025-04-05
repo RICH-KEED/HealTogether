@@ -253,6 +253,27 @@ The platform also collaborates with therapists, NGOs, and other support organiza
 
 ---
 
+## 📊 Test Accounts & Referral Code
+
+You can use the following **referral code** to test the platform features:
+
+```
+THE67efe2500
+```
+
+### 👩‍⚕️ Verified Test Therapist Account  
+- **Email:** `abhineet@gmail.com`  
+- **Password:** `Asd.123@#$`
+
+### 👤 Verified Volunteer Test Account  
+- **Email:** `volunteer@gmail.com`  
+- **Password:** `Asd.123@#$`
+
+### 🏢 Verified NGO Test Account  
+- **Email:** `ngo@gmail.com`  
+- **Password:** `Asd.123@#$`
+
+---
 
 ## 📧 Contact
 For any questions or feedback, please reach out to [abhineet1805@gmail.com](mailto:abhineet1805@gmail.com).
